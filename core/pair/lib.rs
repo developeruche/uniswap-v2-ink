@@ -132,9 +132,11 @@ mod pair {
         }
 
         
+        /// This function would be used to add liquidity this pool
         #[ink(message)]
-        pub fn flip(&mut self) {
-            self.value = !self.value;
+        pub fn mint(&mut self, token_onw_amount: Balance, token_two_amount: Balance, expected_lp_token_amount: Balance, slippage: Balance)  -> Result<(), PairErrors> {
+            
+            Ok(())
         }
 
         
