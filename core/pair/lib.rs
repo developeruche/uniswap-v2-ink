@@ -65,6 +65,42 @@ mod pair {
         InsufficientLPAllowance
     }
 
+
+
+    /// ==========================================
+    /// EVENTS
+    /// ==========================================
+    #[ink(event)]
+    pub struct ProvidedLiquidity {
+        provider:AccountId,
+        token_one_amount:Balance,
+        token_two_amount: Balance,
+        lp_amount:Balance
+    }
+
+    #[ink(event)]
+    pub struct RemovedLiquidity {
+        provider:AccountId,
+        lp_amount:Balance,
+        token_one_amount_out:Balance,
+        token_two_amount_out: Balance,
+        new_lp_amount:Balance
+    }
+
+    #[ink(event)]
+    pub struct SwapTokenOne {
+        caller:AccountId,
+        token_one_amount_in:Balance,
+        token_two_amount_out: Balance,
+        token_two_fee:Balance
+    }
+    #[ink(event)]
+    pub struct SwapTokenTwo {
+        caller:AccountId,
+        token_two_amount_in:Balance,
+        token_one_amount_out: Balance,
+        token_one_fee:Balance
+    }
     
 
     /// ==========================================
