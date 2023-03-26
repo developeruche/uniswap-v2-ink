@@ -101,7 +101,7 @@ mod pair {
         token_one_amount_out: Balance,
         token_one_fee:Balance
     }
-    
+
 
     /// ==========================================
     /// PSP22 pair contract logic implementation
@@ -109,8 +109,26 @@ mod pair {
     impl Pair {
         
         #[ink(constructor)]
-        pub fn new(init_value: bool) -> Self {
-            Self { value: init_value }
+        pub fn new(
+            token_one:AccountId,
+            token_two:AccountId,
+            fee: Balance,
+            fee_vault:AccountId
+        ) -> Self {
+            let balances = Mapping::default();
+            let lp_tokens_allowances = Mapping::default();
+            let total_supply = 0;
+            let traders_fee:Balance = 25;
+
+            Self {
+                token_one,
+                token_two,
+                fee,
+                total_supply,
+                balances,
+                lp_tokens_allowances,
+                fee_vault
+            }
         }
 
         
