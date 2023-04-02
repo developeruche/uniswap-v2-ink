@@ -2,11 +2,11 @@
 
 /// Exporting interface for interaction
 pub use self::pair::{
-	TradingPairPsp22,
-	TradingPairPsp22Ref,
+	Pair,
+	PairRef,
 };
 
-
+use num
 
 #[ink::contract]
 mod pair {
@@ -14,12 +14,11 @@ mod pair {
     /// This would be used to interaction with the PSP22 token in this pool    
     use openbrush::{
         contracts::{
-
             traits::psp22::PSP22Ref,
         },
     };
 
-    use ink::storage::Mapping;
+    use ink::{storage::Mapping, primitives::AccountId};
     use ink::env::CallFlags;
     use ink::prelude::vec;
 
@@ -31,13 +30,24 @@ mod pair {
     /// ============================ 
     #[ink(storage)]
     pub struct Pair {
-        token_one: AccountId, // first token in the pool
-        token_two: AccountId, // second token in this pool
-        fee: Balance, // this is the fee that would be paid to this protocol
+        // ====================================
+        // LP TOKEN DATA
+        // ====================================
         total_supply: Balance, // this is the total supply of all the LP token that has been minted from this pull
         balances: Mapping<AccountId, Balance>, // this is the mapping of lp token balances 
         lp_tokens_allowances: Mapping<(AccountId,AccountId), Balance>, // this is a 3d mapping of lp token allowances 
-        fee_vault: AccountId // this is the address that would be receiving the fee from swaps 
+
+
+        // =====================================
+        // PAIR STORAGE DATA
+        // =====================================
+        factory: AccountId,
+        token_one: AccountId, // first token in the pool
+        token_two: AccountId, // second token in this pool
+        reserve_token_one: Balance,
+        reserve_token_two: Balance,
+        last_update_time: Balance,
+        last_constant_product: Balance
     }
 
 
@@ -71,35 +81,76 @@ mod pair {
     /// EVENTS
     /// ==========================================
     #[ink(event)]
-    pub struct ProvidedLiquidity {
+    pub struct Mint {
+        #[ink(topic)]
         provider:AccountId,
         token_one_amount:Balance,
         token_two_amount: Balance,
-        lp_amount:Balance
     }
 
+
     #[ink(event)]
-    pub struct RemovedLiquidity {
+    pub struct Burn {
+        #[ink(topic)]
         provider:AccountId,
-        lp_amount:Balance,
-        token_one_amount_out:Balance,
-        token_two_amount_out: Balance,
-        new_lp_amount:Balance
+        token_one_amount:Balance,
+        token_two_amount: Balance,
+        receiver: AccountId
     }
 
+
     #[ink(event)]
-    pub struct SwapTokenOne {
-        caller:AccountId,
-        token_one_amount_in:Balance,
-        token_two_amount_out: Balance,
-        token_two_fee:Balance
+    pub struct Swap {
+        #[ink(topic)]
+        trader: AccountId,
+        amount_token_one_in:Balance,
+        amount_token_two_in: Balance,
+        amount_token_one_out:Balance,
+        amount_token_two_out: Balance,
+        receiver: AccountId
     }
+
+
     #[ink(event)]
-    pub struct SwapTokenTwo {
-        caller:AccountId,
-        token_two_amount_in:Balance,
-        token_one_amount_out: Balance,
-        token_one_fee:Balance
+    pub struct Sync {
+        token_one_reserve: Balance,
+        token_two_reserve: Balance
+    }
+
+
+    #[ink(impl)]
+    impl Pair {
+        // ========================
+        // INTERNAL FUNCTIONS
+        // ========================
+
+        fn _update(&mut self, _reserve_token_one: Balance, _reserve_token_two: Balance) -> Result<(), PairErrors> {
+            self.reserve_token_one = _reserve_token_one;
+            self.reserve_token_two = _reserve_token_two;
+            self.last_update_time = self.env().block_number();
+
+            self.env().emit_event(
+                    Sync {
+                        token_one_reserve: _reserve_token_one,
+                        token_two_reserve: _reserve_token_two
+                    }
+                );
+            Ok(())
+        }
+
+        fn _balance_of(&self, token: AccountId, account: AccountId) -> Balance {
+            PSP22Ref::balance_of(
+                &token,
+                account
+            )
+        }
+
+        fn burn_address(&self) -> AccountId {
+            [1u8; 32].into()
+        }
+
+
+        /// ADD a mint fee function here is you want fee to be paid to the protocol managers (Look into Uniswap v2 business model for more details)
     }
 
 
@@ -107,7 +158,8 @@ mod pair {
     /// PSP22 pair contract logic implementation
     /// ==========================================
     impl Pair {
-        
+        const MINIMUM_LIQUIDITY: Balance = 1000;
+
         #[ink(constructor)]
         pub fn new(
             token_one:AccountId,
@@ -127,22 +179,52 @@ mod pair {
                 total_supply,
                 balances,
                 lp_tokens_allowances,
-                fee_vault
+                fee_vault,
+                reserve_token_one,
+                reserve_token_two,
+                last_update_time
             }
         }
 
         
         /// This function would be used to add liquidity this pool
         #[ink(message)]
-        pub fn mint(&mut self, token_onw_amount: Balance, token_two_amount: Balance, expected_lp_token_amount: Balance, slippage: Balance)  -> Result<(), PairErrors> {
+        pub fn mint(&mut self, to: AccountId)  -> Result<(balance), PairErrors> {
+            let caller = self.env().caller();
+            let (reserve_token_one, reserve_token_two, last_update_time) = self.get_reserves();
+            let address_this = self.env().account_id();
+            
+            let pair_token_one_balance = _balance_of(self.token_one, address_this);
+            let pair_token_two_balance = _balance_of(self.token_two, address_this);
+
+            let amount_in_token_one = pair_token_one_balance - reserve_token_one;
+            let amount_in_token_two = pair_token_two_balance - reserve_token_two;
+            let liquidity: Balance;
+
+
+            if self.total_supply == 0 {
+                // in this case liquidity is benin provided for the first 
+                liquidity = sqrt
+            }
             
             Ok(())
         }
 
+
+        #[ink(message)]
+        pub fn burn(&mut self, to: AccountId) -> Result<(Balance, Balance), PairErrors> {
+            let amount_token_one = (balance_lp_in_pool * pair_token_one_balance) / self.total_supply;
+            let amount_token_two = (balance_lp_in_pool * pair_token_two_balance) / self.total_supply;
+        }
+
         
         #[ink(message)]
-        pub fn get(&self) -> bool {
-            self.value
+        pub fn get_reserves(&self) -> Result<(Balance, Balance, Balance), PairErrors> {
+            Ok((
+                self.reserve_token_one,
+                self.reserve_token_two,
+                self.last_update_time
+            ))
         }
     }
 }
