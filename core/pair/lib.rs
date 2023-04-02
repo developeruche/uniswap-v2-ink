@@ -6,7 +6,7 @@ pub use self::pair::{
 	PairRef,
 };
 
-use num
+use std::num::sqrt;
 
 #[ink::contract]
 mod pair {
@@ -150,7 +150,7 @@ mod pair {
         }
 
 
-        /// ADD a mint fee function here is you want fee to be paid to the protocol managers (Look into Uniswap v2 business model for more details)
+        // ADD a mint fee function here is you want fee to be paid to the protocol managers (Look into Uniswap v2 business model for more details)
     }
 
 
@@ -204,7 +204,8 @@ mod pair {
 
             if self.total_supply == 0 {
                 // in this case liquidity is benin provided for the first 
-                liquidity = sqrt
+                liquidity = sqrt(amount_token_one * amount_token_two) - MINIMUM_LIQUIDITY;
+                
             }
             
             Ok(())
